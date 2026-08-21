@@ -89,34 +89,34 @@ class PaymentVerificationService:
 
 
         @staticmethod
-    @transaction.atomic
-    def mark_failed(
-        *,
-        payment,
-        provider_reference=None,
-    ):
-        if payment.status == "SUCCESS":
-            raise ValueError(
-                "A successful payment cannot "
-                "be marked failed."
+        @transaction.atomic
+        def mark_failed(
+            *,
+            payment,
+            provider_reference=None,
+        ):
+            if payment.status == "SUCCESS":
+                raise ValueError(
+                    "A successful payment cannot "
+                    "be marked failed."
+                )
+
+            if payment.status == "FAILED":
+                return payment
+
+            payment.status = "FAILED"
+
+            if provider_reference:
+                payment.provider_reference = (
+                    provider_reference
+                )
+
+            payment.save(
+                update_fields=[
+                    "status",
+                    "provider_reference",
+                    "updated_at",
+                ]
             )
 
-        if payment.status == "FAILED":
             return payment
-
-        payment.status = "FAILED"
-
-        if provider_reference:
-            payment.provider_reference = (
-                provider_reference
-            )
-
-        payment.save(
-            update_fields=[
-                "status",
-                "provider_reference",
-                "updated_at",
-            ]
-        )
-
-        return payment
