@@ -9,10 +9,12 @@ https://docs.djangoproject.com/en/6.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.1/ref/settings/
 """
+import os
 
+from dotenv import load_dotenv
 from pathlib import Path
 from datetime import timedelta
-
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -87,6 +89,51 @@ SIMPLE_JWT = {
         "Bearer",
     ),
 }
+
+
+# ============================================================
+# MTN MOBILE MONEY
+# ============================================================
+
+MTN_MOMO_BASE_URL = os.getenv(
+    "MTN_MOMO_BASE_URL"
+)
+
+MTN_MOMO_API_USER = os.getenv(
+    "MTN_MOMO_API_USER"
+)
+
+MTN_MOMO_API_KEY = os.getenv(
+    "MTN_MOMO_API_KEY"
+)
+
+MTN_MOMO_SUBSCRIPTION_KEY = os.getenv(
+    "MTN_MOMO_SUBSCRIPTION_KEY"
+)
+
+MTN_MOMO_TARGET_ENVIRONMENT = os.getenv(
+    "MTN_MOMO_TARGET_ENVIRONMENT",
+    "sandbox",
+)
+
+MTN_MOMO_CALLBACK_URL = os.getenv(
+    "MTN_MOMO_CALLBACK_URL"
+)
+
+
+AIRTEL_BASE_URL = os.getenv(
+    "AIRTEL_BASE_URL"
+)
+
+AIRTEL_CLIENT_ID = os.getenv(
+    "AIRTEL_CLIENT_ID"
+)
+
+AIRTEL_CLIENT_SECRET = os.getenv(
+    "AIRTEL_CLIENT_SECRET"
+)
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

@@ -54,6 +54,10 @@ urlpatterns = [
     "api/v1/",
     include("downloads.urls"),
     ),
+    path(
+    "api/v1/payments/",
+    include("payments.urls"),
+    ),
 ]
 
 

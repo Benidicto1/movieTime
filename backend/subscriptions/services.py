@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db import transaction
 from django.utils import timezone
 
@@ -18,10 +20,14 @@ class SubscriptionService:
         plan_id,
     ):
 
-        plan = SubscriptionPlan.objects.filter(
-            id=plan_id,
-            is_active=True,
-        ).first()
+        plan = (
+            SubscriptionPlan.objects
+            .filter(
+                id=plan_id,
+                is_active=True,
+            )
+            .first()
+        )
 
         if plan is None:
             raise ValueError(
@@ -70,9 +76,72 @@ class SubscriptionService:
     @staticmethod
     def can_stream(user):
 
-        return SubscriptionService.has_active_subscription(
-            user
+        return (
+            SubscriptionService
+            .has_active_subscription(user)
         )
+
+    @staticmethod
+    @transaction.atomic
+    def activate_subscription(
+        *,
+        order,
+    ):
+
+        if order.status != SubscriptionOrder.Status.PAID:
+
+            raise ValueError(
+                "Subscription order has not been paid."
+            )
+
+        now = timezone.now()
+
+        existing_subscription = (
+            Subscription.objects
+            .filter(
+                user=order.user,
+                status=Subscription.Status.ACTIVE,
+                expires_at__gt=now,
+            )
+            .order_by("-expires_at")
+            .first()
+        )
+
+        if existing_subscription:
+
+            start_date = (
+                existing_subscription.expires_at
+            )
+
+        else:
+
+            start_date = now
+
+        expires_at = (
+            start_date
+            + timedelta(
+                days=order.plan.duration_days
+            )
+        )
+
+        subscription = Subscription.objects.create(
+            user=order.user,
+            plan=order.plan,
+            status=Subscription.Status.ACTIVE,
+            started_at=start_date,
+            expires_at=expires_at,
+        )
+
+        order.subscription = subscription
+
+        order.save(
+            update_fields=[
+                "subscription",
+                "updated_at",
+            ]
+        )
+
+        return subscription
 
     @staticmethod
     def expire_subscriptions():

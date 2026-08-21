@@ -47,95 +47,74 @@ class PaymentService:
         return payment
 
 
-class PaymentVerificationService:
-    """
-    Handles payment verification results.
+from django.db import transaction
 
-    IMPORTANT:
-    This service should only be called after the
-    payment provider has actually confirmed the
-    transaction.
-    """
+from .models import Payment
+
+
+class PaymentVerificationService:
 
     @staticmethod
     @transaction.atomic
     def mark_success(
         *,
         payment,
-        provider_reference,
+        provider_reference=None,
     ):
-        """
-        Mark a payment as successfully completed.
-        """
-
-        payment = (
-            Payment.objects
-            .select_for_update()
-            .select_related(
-                "order",
-                "order__plan",
-            )
-            .get(
-                pk=payment.pk
-            )
-        )
-
-        # Prevent duplicate processing
-        if payment.status == Payment.Status.SUCCESS:
+        if payment.status == "SUCCESS":
             return payment
 
-        payment.status = Payment.Status.SUCCESS
+        if payment.status == "FAILED":
+            raise ValueError(
+                "A failed payment cannot be "
+                "marked successful directly."
+            )
 
-        payment.provider_reference = (
-            provider_reference
-        )
+        payment.status = "SUCCESS"
 
-        payment.completed_at = timezone.now()
+        if provider_reference:
+            payment.provider_reference = (
+                provider_reference
+            )
 
         payment.save(
             update_fields=[
                 "status",
                 "provider_reference",
-                "completed_at",
                 "updated_at",
             ]
         )
 
         return payment
 
-    @staticmethod
+
+        @staticmethod
     @transaction.atomic
     def mark_failed(
         *,
         payment,
-        failure_reason=None,
+        provider_reference=None,
     ):
-        """
-        Mark a payment as failed.
-        """
-
-        payment = (
-            Payment.objects
-            .select_for_update()
-            .get(
-                pk=payment.pk
+        if payment.status == "SUCCESS":
+            raise ValueError(
+                "A successful payment cannot "
+                "be marked failed."
             )
-        )
 
-        # Don't overwrite a successful payment
-        if payment.status == Payment.Status.SUCCESS:
+        if payment.status == "FAILED":
             return payment
 
-        payment.status = Payment.Status.FAILED
+        payment.status = "FAILED"
 
-        payment.failure_reason = (
-            failure_reason
-        )
+        if provider_reference:
+            payment.provider_reference = (
+                provider_reference
+            )
 
         payment.save(
             update_fields=[
                 "status",
-                "failure_reason",
+                "provider_reference",
                 "updated_at",
             ]
         )

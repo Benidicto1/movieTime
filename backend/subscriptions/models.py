@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
+
 class SubscriptionPlan(models.Model):
 
     class PlanType(models.TextChoices):
@@ -39,11 +40,11 @@ class SubscriptionPlan(models.Model):
     )
 
     def __str__(self):
+
         return (
             f"{self.name} - "
             f"UGX {self.price}"
         )
-
 
 
 class Subscription(models.Model):
@@ -91,6 +92,7 @@ class Subscription(models.Model):
     )
 
     def is_active(self):
+
         now = timezone.now()
 
         return (
@@ -100,37 +102,34 @@ class Subscription(models.Model):
             and self.started_at <= now < self.expires_at
         )
 
+    def mark_expired_if_needed(self):
 
-        def mark_expired_if_needed(self):
+        if (
+            self.status == self.Status.ACTIVE
+            and self.expires_at is not None
+            and self.expires_at <= timezone.now()
+        ):
 
-            if (
-                self.status == self.Status.ACTIVE
-                and self.expires_at is not None
-                and self.expires_at <= timezone.now()
-            ):
-                self.status = self.Status.EXPIRED
+            self.status = self.Status.EXPIRED
 
-                self.save(
-                    update_fields=[
-                        "status",
-                        "updated_at",
-                    ]
-                )
+            self.save(
+                update_fields=[
+                    "status",
+                    "updated_at",
+                ]
+            )
 
-                return True
+            return True
 
-            return False    
+        return False
 
-    
-    
     def __str__(self):
+
         return (
             f"{self.user} - "
             f"{self.plan.name} - "
             f"{self.status}"
         )
-
-
 
 
 class SubscriptionOrder(models.Model):
@@ -186,10 +185,9 @@ class SubscriptionOrder(models.Model):
     )
 
     def __str__(self):
+
         return (
             f"Order #{self.id} - "
             f"{self.user} - "
             f"{self.plan.name}"
         )
-
-    

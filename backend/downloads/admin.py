@@ -1,38 +1,23 @@
 from django.contrib import admin
 
-from .models import Payment
+from .models import PermanentDownload
 
 
-@admin.register(Payment)
-class PaymentAdmin(admin.ModelAdmin):
-
+@admin.register(PermanentDownload)
+class PermanentDownloadAdmin(admin.ModelAdmin):
     list_display = (
         "id",
         "user",
-        "order",
-        "provider",
-        "amount",
-        "currency",
-        "status",
-        "created_at",
-        "completed_at",
+        "movie",
+        "is_available",
     )
 
     list_filter = (
-        "provider",
-        "status",
-        "currency",
+        "is_available",
     )
 
     search_fields = (
         "user__username",
         "user__email",
-        "provider_reference",
-        "external_reference",
-    )
-
-    readonly_fields = (
-        "created_at",
-        "updated_at",
-        "completed_at",
+        "movie__title",
     )
