@@ -1,13 +1,14 @@
 from django.urls import path
 
 from .views import (
-    MovieDetailAPIView,
     MovieListCreateAPIView,
-    MovieStreamAPIView
+    MovieDetailAPIView,
+    MovieStreamAPIView,
 )
 
 
 urlpatterns = [
+
     path(
         "",
         MovieListCreateAPIView.as_view(),
@@ -19,9 +20,10 @@ urlpatterns = [
         MovieDetailAPIView.as_view(),
         name="movie-detail",
     ),
+
     path(
-    "<int:movie_id>/stream/",
-    MovieStreamAPIView.as_view(),
-    name="movie-stream",
-),
+        "<int:movie_id>/stream/",
+        MovieStreamAPIView.as_view(),
+        name="movie-stream",
+    ),
 ]

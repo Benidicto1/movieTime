@@ -134,6 +134,28 @@ AIRTEL_CLIENT_SECRET = os.getenv(
 )
 
 
+MOVIETIME_STORAGE = {
+    "PRIVATE_BUCKET": "movietime-media",
+    "PRIVATE_PREFIX": "private/movies/",
+    "SIGNED_URL_EXPIRATION": 600,
+}
+
+MOVIETIME_STORAGE_BUCKET = os.getenv(
+    "MOVIETIME_STORAGE_BUCKET",
+)
+
+MOVIETIME_CDN_DOMAIN = os.getenv(
+    "MOVIETIME_CDN_DOMAIN",
+)
+
+MOVIETIME_SIGNED_URL_EXPIRATION = int(
+    os.getenv(
+        "MOVIETIME_SIGNED_URL_EXPIRATION",
+        "600",
+    )
+)
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

@@ -1,5 +1,7 @@
 from django.db import models
 
+
+
 #our genre class
 class Genre(models.Model):
     name = models.CharField(
@@ -298,6 +300,10 @@ class MovieMedia(models.Model):
 
     updated_at = models.DateTimeField(
         auto_now=True
+    )
+    movie_storage_key = models.CharField(
+    max_length=500,
+    blank=True,
     )
 
     def __str__(self):
