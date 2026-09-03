@@ -1,45 +1,26 @@
-import requests
-
-from django.conf import settings
-
-from .base import PaymentProvider
+from .base import MobileMoneyProvider
 
 
-class MTNPaymentProvider(PaymentProvider):
+class MTNMobileMoneyProvider(
+    MobileMoneyProvider
+):
+    """
+    MTN Mobile Money provider.
 
-    def __init__(self):
-        self.base_url = settings.MTN_BASE_URL
-        self.api_user = settings.MTN_API_USER
-        self.api_key = settings.MTN_API_KEY
-        self.subscription_key = (
-            settings.MTN_SUBSCRIPTION_KEY
-        )
+    The real MTN API integration will be added
+    when the backend payment provider configuration
+    is implemented.
+    """
 
     def initiate_payment(
         self,
         *,
-        payment,
+        amount,
+        currency,
         phone_number,
+        reference,
     ):
-        """
-        Initiate an MTN Mobile Money payment.
-        """
-
         raise NotImplementedError(
-            "MTN payment initiation will be implemented "
-            "after configuring the MTN API."
-        )
-
-    def verify_payment(
-        self,
-        *,
-        payment,
-    ):
-        """
-        Verify the payment with MTN.
-        """
-
-        raise NotImplementedError(
-            "MTN payment verification will be implemented "
-            "after configuring the MTN API."
+            "MTN Mobile Money integration "
+            "has not been configured yet."
         )

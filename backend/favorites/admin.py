@@ -30,4 +30,4 @@ class WatchlistAdmin(admin.ModelAdmin):
     search_fields = [
         "user__email",
         "movie__title",
-    ]
+    ] 

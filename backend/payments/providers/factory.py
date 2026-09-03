@@ -1,15 +1,22 @@
-from .airtel import AirtelPaymentProvider
-from .mtn import MTNPaymentProvider
+from .airtel import AirtelMoneyProvider
+from .mtn import MTNMobileMoneyProvider
 
 
-def get_payment_provider(provider):
+def get_payment_provider(
+    provider,
+):
+    """
+    Return the correct mobile money provider.
+    """
+
+    provider = provider.upper()
 
     if provider == "MTN":
-        return MTNPaymentProvider()
+        return MTNMobileMoneyProvider()
 
     if provider == "AIRTEL":
-        return AirtelPaymentProvider()
+        return AirtelMoneyProvider()
 
     raise ValueError(
-        f"Unsupported payment provider: {provider}"
+        "Unsupported payment provider."
     )

@@ -1,42 +1,26 @@
-from django.conf import settings
-
-from .base import PaymentProvider
+from .base import MobileMoneyProvider
 
 
-class AirtelPaymentProvider(PaymentProvider):
+class AirtelMoneyProvider(
+    MobileMoneyProvider
+):
+    """
+    Airtel Money provider.
 
-    def __init__(self):
-        self.base_url = settings.AIRTEL_BASE_URL
-        self.client_id = settings.AIRTEL_CLIENT_ID
-        self.client_secret = settings.AIRTEL_CLIENT_SECRET
+    The real Airtel API integration will be added
+    when the backend payment provider configuration
+    is implemented.
+    """
 
     def initiate_payment(
         self,
         *,
-        payment,
+        amount,
+        currency,
         phone_number,
+        reference,
     ):
-        """
-        Initiate an Airtel Money payment.
-        """
-
         raise NotImplementedError(
-            "Airtel payment initiation will be "
-            "implemented after configuring the "
-            "Airtel Money API."
-        )
-
-    def verify_payment(
-        self,
-        *,
-        payment,
-    ):
-        """
-        Verify the payment with Airtel.
-        """
-
-        raise NotImplementedError(
-            "Airtel payment verification will be "
-            "implemented after configuring the "
-            "Airtel Money API."
+            "Airtel Money integration "
+            "has not been configured yet."
         )

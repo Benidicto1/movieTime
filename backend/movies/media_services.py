@@ -1,7 +1,6 @@
-from .storage_service import (
+from .storage_services import (
     MovieStorageService,
 )
-
 
 class MediaDeliveryService:
 

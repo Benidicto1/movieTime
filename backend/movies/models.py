@@ -1,33 +1,31 @@
 from django.db import models
 
 
-
-#our genre class
 class Genre(models.Model):
     name = models.CharField(
         max_length=100,
-        unique=True
+        unique=True,
     )
 
     slug = models.SlugField(
         max_length=120,
-        unique=True
+        unique=True,
     )
 
     description = models.TextField(
-        blank=True
+        blank=True,
     )
 
     is_active = models.BooleanField(
-        default=True
+        default=True,
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
 
     updated_at = models.DateTimeField(
-        auto_now=True
+        auto_now=True,
     )
 
     class Meta:
@@ -36,36 +34,36 @@ class Genre(models.Model):
     def __str__(self):
         return self.name
 
-#our category class
+
 class Category(models.Model):
     name = models.CharField(
         max_length=100,
-        unique=True
+        unique=True,
     )
 
     slug = models.SlugField(
         max_length=120,
-        unique=True
+        unique=True,
     )
 
     description = models.TextField(
-        blank=True
+        blank=True,
     )
 
     display_order = models.PositiveIntegerField(
-        default=0
+        default=0,
     )
 
     is_active = models.BooleanField(
-        default=True
+        default=True,
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
 
     updated_at = models.DateTimeField(
-        auto_now=True
+        auto_now=True,
     )
 
     class Meta:
@@ -74,16 +72,16 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
-#our language class
+
 class Language(models.Model):
     name = models.CharField(
         max_length=100,
-        unique=True
+        unique=True,
     )
 
     code = models.CharField(
         max_length=10,
-        unique=True
+        unique=True,
     )
 
     def __str__(self):
@@ -93,12 +91,12 @@ class Language(models.Model):
 class Country(models.Model):
     name = models.CharField(
         max_length=100,
-        unique=True
+        unique=True,
     )
 
     code = models.CharField(
         max_length=3,
-        unique=True
+        unique=True,
     )
 
     def __str__(self):
@@ -107,20 +105,20 @@ class Country(models.Model):
 
 class Person(models.Model):
     name = models.CharField(
-        max_length=255
+        max_length=255,
     )
 
     bio = models.TextField(
-        blank=True
+        blank=True,
     )
 
     birth_date = models.DateField(
         null=True,
-        blank=True
+        blank=True,
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
 
     def __str__(self):
@@ -138,12 +136,12 @@ class Movie(models.Model):
     ]
 
     title = models.CharField(
-        max_length=255
+        max_length=255,
     )
 
     slug = models.SlugField(
         max_length=255,
-        unique=True
+        unique=True,
     )
 
     description = models.TextField()
@@ -151,58 +149,59 @@ class Movie(models.Model):
     genres = models.ManyToManyField(
         Genre,
         related_name="movies",
-        blank=True
+        blank=True,
     )
 
     categories = models.ManyToManyField(
-    Category,
-    related_name="movies",
-    blank=True
-)
+        Category,
+        related_name="movies",
+        blank=True,
+    )
 
     languages = models.ManyToManyField(
         Language,
         related_name="movies",
-        blank=True
+        blank=True,
     )
 
     countries = models.ManyToManyField(
         Country,
         related_name="movies",
-        blank=True
+        blank=True,
     )
 
     release_date = models.DateField(
         null=True,
-        blank=True
+        blank=True,
     )
 
     runtime_minutes = models.PositiveIntegerField(
         null=True,
-        blank=True
+        blank=True,
     )
 
     age_rating = models.CharField(
         max_length=10,
         choices=AGE_RATING_CHOICES,
-        blank=True
+        blank=True,
+    )
+
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=10000.00,
     )
 
     is_active = models.BooleanField(
-        default=True
+        default=True,
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
 
     updated_at = models.DateTimeField(
-        auto_now=True
-    )
-    price = models.DecimalField(
-    max_digits=10,
-    decimal_places=2,
-    default=10000.00,
+        auto_now=True,
     )
 
     class Meta:
@@ -222,22 +221,22 @@ class MovieCast(models.Model):
     movie = models.ForeignKey(
         Movie,
         on_delete=models.CASCADE,
-        related_name="cast"
+        related_name="cast",
     )
 
     person = models.ForeignKey(
         Person,
         on_delete=models.CASCADE,
-        related_name="acting_roles"
+        related_name="acting_roles",
     )
 
     character_name = models.CharField(
         max_length=255,
-        blank=True
+        blank=True,
     )
 
     billing_order = models.PositiveIntegerField(
-        default=0
+        default=0,
     )
 
     class Meta:
@@ -251,17 +250,17 @@ class MovieCrew(models.Model):
     movie = models.ForeignKey(
         Movie,
         on_delete=models.CASCADE,
-        related_name="crew"
+        related_name="crew",
     )
 
     person = models.ForeignKey(
         Person,
         on_delete=models.CASCADE,
-        related_name="crew_roles"
+        related_name="crew_roles",
     )
 
     role = models.CharField(
-        max_length=100
+        max_length=100,
     )
 
     class Meta:
@@ -275,39 +274,41 @@ class MovieMedia(models.Model):
     movie = models.OneToOneField(
         Movie,
         on_delete=models.CASCADE,
-        related_name="media"
+        related_name="media",
     )
 
     poster = models.ImageField(
         upload_to="movies/posters/",
         blank=True,
-        null=True
+        null=True,
     )
 
     backdrop = models.ImageField(
         upload_to="movies/backdrops/",
         blank=True,
-        null=True
+        null=True,
     )
 
     trailer_url = models.URLField(
-        blank=True
+        blank=True,
+    )
+
+    movie_storage_key = models.CharField(
+        max_length=500,
+        blank=True,
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
 
     updated_at = models.DateTimeField(
-        auto_now=True
-    )
-    movie_storage_key = models.CharField(
-    max_length=500,
-    blank=True,
+        auto_now=True,
     )
 
     def __str__(self):
         return f"Media for {self.movie.title}"
+
 
 class MovieVideo(models.Model):
 
@@ -321,72 +322,73 @@ class MovieVideo(models.Model):
     movie = models.ForeignKey(
         Movie,
         on_delete=models.CASCADE,
-        related_name="videos"
+        related_name="videos",
     )
 
     resolution = models.CharField(
-        max_length=20
+        max_length=20,
     )
 
     storage_key = models.CharField(
-        max_length=500
+        max_length=500,
     )
 
     file_size = models.PositiveBigIntegerField(
         null=True,
-        blank=True
+        blank=True,
     )
 
     file_format = models.CharField(
         max_length=20,
-        default="mp4"
+        default="mp4",
     )
 
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default="UPLOADING"
+        default="UPLOADING",
     )
 
     is_active = models.BooleanField(
-        default=True
+        default=True,
     )
 
     created_at = models.DateTimeField(
-        auto_now_add=True
+        auto_now_add=True,
     )
 
     updated_at = models.DateTimeField(
-        auto_now=True
+        auto_now=True,
     )
 
     def __str__(self):
         return f"{self.movie.title} - {self.resolution}"
 
+
 class Subtitle(models.Model):
     movie = models.ForeignKey(
         Movie,
         on_delete=models.CASCADE,
-        related_name="subtitles"
+        related_name="subtitles",
     )
 
     language = models.ForeignKey(
         Language,
         on_delete=models.PROTECT,
-        related_name="subtitles"
+        related_name="subtitles",
     )
 
     storage_key = models.CharField(
-        max_length=500
+        max_length=500,
     )
 
     format = models.CharField(
         max_length=20,
-        default="vtt"
+        default="vtt",
     )
 
     is_active = models.BooleanField(
-        default=True
+        default=True,
     )
 
     def __str__(self):

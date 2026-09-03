@@ -1,10 +1,9 @@
 from django.contrib import admin
-from django.contrib import admin
 
 from .models import (
+    SubscriptionPlan,
     Subscription,
     SubscriptionOrder,
-    SubscriptionPlan,
 )
 
 
@@ -24,6 +23,14 @@ class SubscriptionPlanAdmin(admin.ModelAdmin):
         "is_active",
     )
 
+    search_fields = (
+        "name",
+    )
+
+    ordering = (
+        "price",
+    )
+
 
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
@@ -34,6 +41,7 @@ class SubscriptionAdmin(admin.ModelAdmin):
         "status",
         "started_at",
         "expires_at",
+        "created_at",
     )
 
     list_filter = (
@@ -43,7 +51,10 @@ class SubscriptionAdmin(admin.ModelAdmin):
 
     search_fields = (
         "user__username",
-        "user__email",
+    )
+
+    ordering = (
+        "-created_at",
     )
 
 
@@ -68,5 +79,8 @@ class SubscriptionOrderAdmin(admin.ModelAdmin):
 
     search_fields = (
         "user__username",
-        "user__email",
+    )
+
+    ordering = (
+        "-created_at",
     )

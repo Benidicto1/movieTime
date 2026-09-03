@@ -1,21 +1,22 @@
 from abc import ABC, abstractmethod
 
 
-class PaymentProvider(ABC):
+class MobileMoneyProvider(ABC):
+    """
+    Base interface for MovieTime mobile money
+    payment providers.
+    """
 
     @abstractmethod
     def initiate_payment(
         self,
         *,
-        payment,
+        amount,
+        currency,
         phone_number,
+        reference,
     ):
-        pass
-
-    @abstractmethod
-    def verify_payment(
-        self,
-        *,
-        payment,
-    ):
-        pass
+        """
+        Start a mobile money payment.
+        """
+        raise NotImplementedError

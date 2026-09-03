@@ -51,7 +51,8 @@ INSTALLED_APPS = [
     "downloads.apps.DownloadsConfig",
     "accounts.apps.AccountsConfig",
     "favorites.apps.FavoritesConfig",
-    "subscriptions.apps.SubscriptionsConfig"
+    "subscriptions.apps.SubscriptionsConfig",
+    "notifications.apps.NotificationsConfig",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
