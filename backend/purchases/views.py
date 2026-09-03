@@ -1,5 +1,3 @@
-# purchases/views.py
-
 from django.shortcuts import get_object_or_404
 
 from rest_framework import generics
@@ -13,32 +11,59 @@ from .serializers import PurchaseSerializer
 from .services import PurchaseService
 
 
-class PurchaseListAPIView(generics.ListAPIView):
+class PurchaseListAPIView(
+    generics.ListAPIView
+):
+
     serializer_class = PurchaseSerializer
-    permission_classes = [IsAuthenticated]
+
+    permission_classes = [
+        IsAuthenticated,
+    ]
 
     def get_queryset(self):
-        return Purchase.objects.filter(
-            user=self.request.user
-        ).select_related("movie")
+        return (
+            Purchase.objects
+            .filter(
+                user=self.request.user
+            )
+            .select_related("movie")
+        )
 
 
-class PurchaseCreateAPIView(generics.CreateAPIView):
+class PurchaseCreateAPIView(
+    generics.CreateAPIView
+):
+
     serializer_class = PurchaseSerializer
-    permission_classes = [IsAuthenticated]
 
-    def create(self, request, *args, **kwargs):
-        movie_id = request.data.get("movie")
+    permission_classes = [
+        IsAuthenticated,
+    ]
+
+    def create(
+        self,
+        request,
+        *args,
+        **kwargs,
+    ):
+        movie_id = request.data.get(
+            "movie"
+        )
 
         movie = get_object_or_404(
             Movie,
             id=movie_id,
+            is_active=True,
         )
 
         try:
-            purchase = PurchaseService.create_pending_purchase(
-                user=request.user,
-                movie=movie,
+            purchase = (
+                PurchaseService
+                .create_pending_purchase(
+                    user=request.user,
+                    movie=movie,
+                )
             )
 
         except ValueError as exc:
@@ -49,7 +74,9 @@ class PurchaseCreateAPIView(generics.CreateAPIView):
                 status=400,
             )
 
-        serializer = self.get_serializer(purchase)
+        serializer = self.get_serializer(
+            purchase
+        )
 
         return Response(
             serializer.data,

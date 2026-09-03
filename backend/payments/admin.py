@@ -10,6 +10,7 @@ class PaymentAdmin(admin.ModelAdmin):
         "id",
         "user",
         "order",
+        "purchase",
         "provider",
         "amount",
         "currency",

@@ -1,22 +1,23 @@
 import uuid
+from decimal import Decimal
 
 from django.db import transaction
+from django.utils import timezone
+
+from purchases.models import Purchase
+from subscriptions.models import SubscriptionOrder
+from subscriptions.services import SubscriptionService
 
 from .models import Payment
 from .providers.factory import get_payment_provider
 
-from subscriptions.models import SubscriptionOrder
-
 
 class PaymentService:
-    """
-    Handles creation of MovieTime payment records.
-    """
 
     @staticmethod
     def generate_reference():
         return (
-            f"MOVIETIME-"
+            "MOVIETIME-"
             f"{uuid.uuid4().hex.upper()}"
         )
 
@@ -24,39 +25,105 @@ class PaymentService:
     @transaction.atomic
     def create_payment(
         *,
-        order,
         provider,
+        order=None,
+        purchase=None,
     ):
-        """
-        Create a payment for a pending
-        subscription order.
-        """
-
         if (
-            order.status
-            != SubscriptionOrder.Status.PENDING
+            (order is None and purchase is None)
+            or
+            (order is not None and purchase is not None)
         ):
             raise ValueError(
-                "This order cannot receive "
-                "a payment."
+                "Payment must belong to exactly "
+                "one order or purchase."
             )
 
         provider = provider.upper()
 
-        payment = Payment.objects.create(
+        if provider not in {
+            Payment.Provider.MTN,
+            Payment.Provider.AIRTEL,
+        }:
+            raise ValueError(
+                "Unsupported payment provider."
+            )
+
+        if order is not None:
+
+            if (
+                order.status
+                != SubscriptionOrder.Status.PENDING
+            ):
+                raise ValueError(
+                    "This subscription order "
+                    "cannot receive a payment."
+                )
+
+            existing_payment = (
+                Payment.objects
+                .select_for_update()
+                .filter(
+                    order=order,
+                    status__in=[
+                        Payment.Status.PENDING,
+                        Payment.Status.PROCESSING,
+                    ],
+                )
+                .first()
+            )
+
+            if existing_payment:
+                return existing_payment
+
+            user = order.user
+            amount = order.amount
+            currency = order.currency
+
+        else:
+
+            if (
+                purchase.status
+                != Purchase.Status.PENDING
+            ):
+                raise ValueError(
+                    "This purchase cannot "
+                    "receive a payment."
+                )
+
+            existing_payment = (
+                Payment.objects
+                .select_for_update()
+                .filter(
+                    purchase=purchase,
+                    status__in=[
+                        Payment.Status.PENDING,
+                        Payment.Status.PROCESSING,
+                    ],
+                )
+                .first()
+            )
+
+            if existing_payment:
+                return existing_payment
+
+            user = purchase.user
+            amount = purchase.amount
+            currency = purchase.currency
+
+        return Payment.objects.create(
             order=order,
-            user=order.user,
+            purchase=purchase,
+            user=user,
             provider=provider,
-            amount=order.amount,
-            currency=order.currency,
+            amount=amount,
+            currency=currency,
             status=Payment.Status.PENDING,
             external_reference=(
                 PaymentService
                 .generate_reference()
             ),
         )
-
-        return payment
 
     @staticmethod
     @transaction.atomic
@@ -65,15 +132,17 @@ class PaymentService:
         payment,
         phone_number,
     ):
-        """
-        Initiate payment with the selected
-        mobile money provider.
-        """
+        payment = (
+            Payment.objects
+            .select_for_update()
+            .get(
+                pk=payment.pk
+            )
+        )
 
-        if (
-            payment.status
-            != Payment.Status.PENDING
-        ):
+        if payment.status not in {
+            Payment.Status.PENDING,
+        }:
             raise ValueError(
                 "Only pending payments "
                 "can be initiated."
@@ -83,13 +152,27 @@ class PaymentService:
             payment.provider
         )
 
-        result = provider.initiate_payment(
-            amount=payment.amount,
-            currency=payment.currency,
-            phone_number=phone_number,
-            reference=(
-                payment.external_reference
-            ),
+        result = (
+            provider
+            .initiate_payment(
+                amount=payment.amount,
+                currency=payment.currency,
+                phone_number=phone_number,
+                reference=(
+                    payment.external_reference
+                ),
+            )
+        )
+
+        payment.status = (
+            Payment.Status.PROCESSING
+        )
+
+        payment.save(
+            update_fields=[
+                "status",
+                "updated_at",
+            ]
         )
 
         return result
@@ -102,11 +185,21 @@ class PaymentVerificationService:
     def mark_success(
         *,
         payment,
-        provider_reference=None,
+        provider_reference,
+        verified_amount,
+        verified_currency,
     ):
-        """
-        Mark a pending payment as successful.
-        """
+        payment = (
+            Payment.objects
+            .select_for_update()
+            .select_related(
+                "order",
+                "purchase",
+            )
+            .get(
+                pk=payment.pk
+            )
+        )
 
         if (
             payment.status
@@ -114,31 +207,147 @@ class PaymentVerificationService:
         ):
             return payment
 
-        if (
-            payment.status
-            == Payment.Status.FAILED
-        ):
+        if payment.status in {
+            Payment.Status.FAILED,
+            Payment.Status.CANCELLED,
+        }:
             raise ValueError(
-                "A failed payment cannot be "
-                "marked successful directly."
+                "This payment cannot be "
+                "marked successful."
             )
+
+        if not provider_reference:
+            raise ValueError(
+                "A provider reference is "
+                "required."
+            )
+
+        verified_amount = Decimal(
+            str(verified_amount)
+        )
+
+        verified_currency = (
+            str(verified_currency)
+            .upper()
+        )
+
+        if verified_amount != payment.amount:
+            raise ValueError(
+                "Verified payment amount "
+                "does not match the "
+                "MovieTime payment."
+            )
+
+        if verified_currency != payment.currency:
+            raise ValueError(
+                "Verified payment currency "
+                "does not match the "
+                "MovieTime payment."
+            )
+
+        reference_exists = (
+            Payment.objects
+            .exclude(
+                pk=payment.pk
+            )
+            .filter(
+                provider_reference=(
+                    provider_reference
+                )
+            )
+            .exists()
+        )
+
+        if reference_exists:
+            raise ValueError(
+                "Provider reference is "
+                "already associated with "
+                "another payment."
+            )
+
+        now = timezone.now()
 
         payment.status = (
             Payment.Status.SUCCESS
         )
 
-        if provider_reference:
-            payment.provider_reference = (
-                provider_reference
-            )
+        payment.provider_reference = (
+            provider_reference
+        )
+
+        payment.completed_at = now
 
         payment.save(
             update_fields=[
                 "status",
                 "provider_reference",
+                "completed_at",
                 "updated_at",
             ]
         )
+
+        if payment.order is not None:
+
+            order = (
+                SubscriptionOrder.objects
+                .select_for_update()
+                .get(
+                    pk=payment.order_id
+                )
+            )
+
+            if (
+                order.status
+                != SubscriptionOrder.Status.PAID
+            ):
+                order.status = (
+                    SubscriptionOrder.Status.PAID
+                )
+
+                order.save(
+                    update_fields=[
+                        "status",
+                        "updated_at",
+                    ]
+                )
+
+            SubscriptionService.activate_subscription(
+                order=order
+            )
+
+        elif payment.purchase is not None:
+
+            purchase = (
+                Purchase.objects
+                .select_for_update()
+                .get(
+                    pk=payment.purchase_id
+                )
+            )
+
+            if (
+                purchase.status
+                != Purchase.Status.PAID
+            ):
+                purchase.status = (
+                    Purchase.Status.PAID
+                )
+
+                purchase.paid_at = now
+
+                purchase.save(
+                    update_fields=[
+                        "status",
+                        "paid_at",
+                        "updated_at",
+                    ]
+                )
+
+        else:
+            raise ValueError(
+                "Payment has no valid "
+                "financial target."
+            )
 
         return payment
 
@@ -148,10 +357,15 @@ class PaymentVerificationService:
         *,
         payment,
         provider_reference=None,
+        failure_reason=None,
     ):
-        """
-        Mark a pending payment as failed.
-        """
+        payment = (
+            Payment.objects
+            .select_for_update()
+            .get(
+                pk=payment.pk
+            )
+        )
 
         if (
             payment.status
@@ -177,10 +391,21 @@ class PaymentVerificationService:
                 provider_reference
             )
 
+        if failure_reason:
+            payment.failure_reason = (
+                failure_reason
+            )
+
+        payment.completed_at = (
+            timezone.now()
+        )
+
         payment.save(
             update_fields=[
                 "status",
                 "provider_reference",
+                "failure_reason",
+                "completed_at",
                 "updated_at",
             ]
         )

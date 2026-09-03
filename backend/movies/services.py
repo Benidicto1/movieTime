@@ -1,14 +1,44 @@
 from django.core.exceptions import PermissionDenied
 
-from subscriptions.services import (
-    SubscriptionService,
-)
-from downloads.models import PermanentDownload
+from purchases.models import Purchase
 from subscriptions.services import SubscriptionService
 
 
+class MovieAccessService:
 
-class StreamingService:
+    @staticmethod
+    def has_permanent_ownership(
+        *,
+        user,
+        movie,
+    ):
+        if not user.is_authenticated:
+            return False
+
+        return (
+            Purchase.objects
+            .filter(
+                user=user,
+                movie=movie,
+                status=Purchase.Status.PAID,
+            )
+            .exists()
+        )
+
+    @staticmethod
+    def has_subscription_access(
+        *,
+        user,
+    ):
+        if not user.is_authenticated:
+            return False
+
+        return (
+            SubscriptionService
+            .has_active_subscription(
+                user=user
+            )
+        )
 
     @staticmethod
     def can_stream(
@@ -22,22 +52,15 @@ class StreamingService:
         if not movie.is_active:
             return False
 
-        has_subscription = (
-            SubscriptionService.has_active_subscription(
-                user=user
-            )
-        )
-
-        if has_subscription:
+        if MovieAccessService.has_subscription_access(
+            user=user
+        ):
             return True
 
-        from downloads.models import PermanentDownload
-
-        return PermanentDownload.objects.filter(
+        return MovieAccessService.has_permanent_ownership(
             user=user,
             movie=movie,
-            is_available=True,
-        ).exists()
+        )
 
     @staticmethod
     def authorize_stream(
@@ -55,50 +78,13 @@ class StreamingService:
                 "This movie is not available."
             )
 
-        if not SubscriptionService.has_active_subscription(
-            user=user
+        if not MovieAccessService.can_stream(
+            user=user,
+            movie=movie,
         ):
             raise PermissionDenied(
-                "An active subscription is required."
+                "You do not have permission "
+                "to stream this movie."
             )
 
         return True
-
-
-
-
-class MovieAccessService:
-
-    @staticmethod
-    def has_permanent_ownership(
-        *,
-        user,
-        movie,
-    ):
-        return PermanentDownload.objects.filter(
-            user=user,
-            movie=movie,
-            is_available=True,
-        ).exists()
-
-    @staticmethod
-    def can_stream(
-        *,
-        user,
-        movie,
-    ):
-        if not user.is_authenticated:
-            return False
-
-        if not movie.is_active:
-            return False
-
-        if SubscriptionService.has_active_subscription(
-            user=user,
-        ):
-            return True
-
-        return MovieAccessService.has_permanent_ownership(
-            user=user,
-            movie=movie,
-        )

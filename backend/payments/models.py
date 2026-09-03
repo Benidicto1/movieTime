@@ -1,26 +1,64 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 
+from purchases.models import Purchase
 from subscriptions.models import SubscriptionOrder
 
 
 class Payment(models.Model):
 
     class Provider(models.TextChoices):
-        MTN = "MTN", "MTN Mobile Money"
-        AIRTEL = "AIRTEL", "Airtel Money"
+        MTN = (
+            "MTN",
+            "MTN Mobile Money",
+        )
+
+        AIRTEL = (
+            "AIRTEL",
+            "Airtel Money",
+        )
 
     class Status(models.TextChoices):
-        PENDING = "PENDING", "Pending"
-        PROCESSING = "PROCESSING", "Processing"
-        SUCCESS = "SUCCESS", "Success"
-        FAILED = "FAILED", "Failed"
-        CANCELLED = "CANCELLED", "Cancelled"
+        PENDING = (
+            "PENDING",
+            "Pending",
+        )
+
+        PROCESSING = (
+            "PROCESSING",
+            "Processing",
+        )
+
+        SUCCESS = (
+            "SUCCESS",
+            "Success",
+        )
+
+        FAILED = (
+            "FAILED",
+            "Failed",
+        )
+
+        CANCELLED = (
+            "CANCELLED",
+            "Cancelled",
+        )
 
     order = models.ForeignKey(
         SubscriptionOrder,
         on_delete=models.PROTECT,
         related_name="payments",
+        null=True,
+        blank=True,
+    )
+
+    purchase = models.ForeignKey(
+        Purchase,
+        on_delete=models.PROTECT,
+        related_name="payments",
+        null=True,
+        blank=True,
     )
 
     user = models.ForeignKey(
@@ -81,6 +119,61 @@ class Payment(models.Model):
         blank=True,
         null=True,
     )
+
+    class Meta:
+
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    (
+                        Q(order__isnull=False)
+                        & Q(purchase__isnull=True)
+                    )
+                    |
+                    (
+                        Q(order__isnull=True)
+                        & Q(purchase__isnull=False)
+                    )
+                ),
+                name="payment_exactly_one_target",
+            ),
+
+            models.UniqueConstraint(
+                fields=[
+                    "order",
+                ],
+                condition=(
+                    Q(order__isnull=False)
+                    & Q(
+                        status__in=[
+                            "PENDING",
+                            "PROCESSING",
+                        ]
+                    )
+                ),
+                name="unique_active_payment_per_order",
+            ),
+
+            models.UniqueConstraint(
+                fields=[
+                    "purchase",
+                ],
+                condition=(
+                    Q(purchase__isnull=False)
+                    & Q(
+                        status__in=[
+                            "PENDING",
+                            "PROCESSING",
+                        ]
+                    )
+                ),
+                name="unique_active_payment_per_purchase",
+            ),
+        ]
+
+        ordering = [
+            "-created_at",
+        ]
 
     def __str__(self):
         return (

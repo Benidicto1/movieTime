@@ -19,7 +19,6 @@ class SubscriptionService:
         user,
         plan_id,
     ):
-
         plan = (
             SubscriptionPlan.objects
             .filter(
@@ -34,21 +33,26 @@ class SubscriptionService:
                 "Subscription plan not found."
             )
 
-        order = SubscriptionOrder.objects.create(
-            user=user,
-            plan=plan,
-            amount=plan.price,
-            currency="UGX",
-            status=(
-                SubscriptionOrder.Status.PENDING
-            ),
+        order = (
+            SubscriptionOrder.objects.create(
+                user=user,
+                plan=plan,
+                amount=plan.price,
+                currency="UGX",
+                status=(
+                    SubscriptionOrder
+                    .Status
+                    .PENDING
+                ),
+            )
         )
 
         return order
 
     @staticmethod
-    def get_active_subscription(user):
-
+    def get_active_subscription(
+        user,
+    ):
         now = timezone.now()
 
         return (
@@ -65,8 +69,9 @@ class SubscriptionService:
         )
 
     @staticmethod
-    def has_active_subscription(user):
-
+    def has_active_subscription(
+        user,
+    ):
         return (
             SubscriptionService
             .get_active_subscription(user)
@@ -74,8 +79,9 @@ class SubscriptionService:
         )
 
     @staticmethod
-    def can_stream(user):
-
+    def can_stream(
+        user,
+    ):
         return (
             SubscriptionService
             .has_active_subscription(user)
@@ -87,17 +93,32 @@ class SubscriptionService:
         *,
         order,
     ):
+        order = (
+            SubscriptionOrder.objects
+            .select_for_update()
+            .select_related("plan")
+            .get(
+                pk=order.pk
+            )
+        )
 
-        if order.status != SubscriptionOrder.Status.PAID:
+        if order.subscription_id:
+            return order.subscription
 
+        if (
+            order.status
+            != SubscriptionOrder.Status.PAID
+        ):
             raise ValueError(
-                "Subscription order has not been paid."
+                "Subscription order has "
+                "not been paid."
             )
 
         now = timezone.now()
 
         existing_subscription = (
             Subscription.objects
+            .select_for_update()
             .filter(
                 user=order.user,
                 status=Subscription.Status.ACTIVE,
@@ -108,13 +129,11 @@ class SubscriptionService:
         )
 
         if existing_subscription:
-
             start_date = (
-                existing_subscription.expires_at
+                existing_subscription
+                .expires_at
             )
-
         else:
-
             start_date = now
 
         expires_at = (
@@ -124,12 +143,18 @@ class SubscriptionService:
             )
         )
 
-        subscription = Subscription.objects.create(
-            user=order.user,
-            plan=order.plan,
-            status=Subscription.Status.ACTIVE,
-            started_at=start_date,
-            expires_at=expires_at,
+        subscription = (
+            Subscription.objects.create(
+                user=order.user,
+                plan=order.plan,
+                status=(
+                    Subscription
+                    .Status
+                    .ACTIVE
+                ),
+                started_at=start_date,
+                expires_at=expires_at,
+            )
         )
 
         order.subscription = subscription
@@ -151,10 +176,18 @@ class SubscriptionService:
         return (
             Subscription.objects
             .filter(
-                status=Subscription.Status.ACTIVE,
+                status=(
+                    Subscription
+                    .Status
+                    .ACTIVE
+                ),
                 expires_at__lte=now,
             )
             .update(
-                status=Subscription.Status.EXPIRED,
+                status=(
+                    Subscription
+                    .Status
+                    .EXPIRED
+                ),
             )
         )

@@ -1,6 +1,7 @@
 from django.db import transaction
 from django.utils import timezone
 
+from purchases.models import Purchase
 from subscriptions.services import SubscriptionService
 
 from .models import PermanentDownload
@@ -9,12 +10,45 @@ from .models import PermanentDownload
 class DownloadAuthorizationService:
 
     @staticmethod
+    def has_permanent_ownership(
+        *,
+        user,
+        movie,
+    ):
+        if not user.is_authenticated:
+            return False
+
+        return (
+            Purchase.objects
+            .filter(
+                user=user,
+                movie=movie,
+                status=Purchase.Status.PAID,
+            )
+            .exists()
+        )
+
+    @staticmethod
+    def has_subscription_access(
+        *,
+        user,
+    ):
+        if not user.is_authenticated:
+            return False
+
+        return (
+            SubscriptionService
+            .has_active_subscription(
+                user
+            )
+        )
+
+    @staticmethod
     def can_download(
         *,
         user,
         movie,
     ):
-
         if not user.is_authenticated:
             return False
 
@@ -22,8 +56,16 @@ class DownloadAuthorizationService:
             return False
 
         return (
-            SubscriptionService
-            .has_active_subscription(user)
+            DownloadAuthorizationService
+            .has_permanent_ownership(
+                user=user,
+                movie=movie,
+            )
+            or
+            DownloadAuthorizationService
+            .has_subscription_access(
+                user=user,
+            )
         )
 
     @staticmethod
@@ -33,19 +75,13 @@ class DownloadAuthorizationService:
         user,
         movie,
     ):
-
-        if not (
-            DownloadAuthorizationService
-            .can_download(
-                user=user,
-                movie=movie,
-            )
+        if not DownloadAuthorizationService.can_download(
+            user=user,
+            movie=movie,
         ):
-
             raise PermissionError(
-                "An active subscription "
-                "is required to download "
-                "this movie."
+                "You do not have permission "
+                "to download this movie."
             )
 
         download, created = (
@@ -69,7 +105,6 @@ class DownloadAuthorizationService:
     def mark_downloading(
         download,
     ):
-
         download.status = (
             PermanentDownload
             .Status
@@ -89,7 +124,6 @@ class DownloadAuthorizationService:
     def mark_completed(
         download,
     ):
-
         download.status = (
             PermanentDownload
             .Status
@@ -114,7 +148,6 @@ class DownloadAuthorizationService:
     def mark_failed(
         download,
     ):
-
         download.status = (
             PermanentDownload
             .Status
@@ -136,19 +169,12 @@ class DownloadAuthorizationService:
         user,
         movie,
     ):
-
         return (
-            PermanentDownload.objects
-            .filter(
+            DownloadAuthorizationService
+            .has_permanent_ownership(
                 user=user,
                 movie=movie,
-                status=(
-                    PermanentDownload
-                    .Status
-                    .COMPLETED
-                ),
             )
-            .exists()
         )
 
 
@@ -160,7 +186,6 @@ class MediaAuthorizationService:
         user,
         movie,
     ):
-
         if not user.is_authenticated:
             return False
 
@@ -168,8 +193,16 @@ class MediaAuthorizationService:
             return False
 
         return (
-            SubscriptionService
-            .has_active_subscription(user)
+            DownloadAuthorizationService
+            .has_permanent_ownership(
+                user=user,
+                movie=movie,
+            )
+            or
+            DownloadAuthorizationService
+            .has_subscription_access(
+                user=user,
+            )
         )
 
     @staticmethod
@@ -178,22 +211,15 @@ class MediaAuthorizationService:
         user,
         movie,
     ):
-
         if not user.is_authenticated:
             return False
 
         return (
-            PermanentDownload.objects
-            .filter(
+            DownloadAuthorizationService
+            .has_permanent_ownership(
                 user=user,
                 movie=movie,
-                status=(
-                    PermanentDownload
-                    .Status
-                    .COMPLETED
-                ),
             )
-            .exists()
         )
 
     @staticmethod
@@ -202,10 +228,12 @@ class MediaAuthorizationService:
         user,
         movie,
     ):
+        if not user.is_authenticated:
+            return False
 
         return (
-            MediaAuthorizationService
-            .owns_permanent_download(
+            DownloadAuthorizationService
+            .has_permanent_ownership(
                 user=user,
                 movie=movie,
             )

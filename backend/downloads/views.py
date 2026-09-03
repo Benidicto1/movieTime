@@ -26,7 +26,6 @@ class DownloadRequestAPIView(APIView):
         request,
         movie_id,
     ):
-
         movie = get_object_or_404(
             Movie,
             id=movie_id,
@@ -34,7 +33,6 @@ class DownloadRequestAPIView(APIView):
         )
 
         try:
-
             download, created = (
                 DownloadAuthorizationService
                 .create_download(
@@ -44,7 +42,6 @@ class DownloadRequestAPIView(APIView):
             )
 
         except PermissionError as error:
-
             return Response(
                 {
                     "detail": str(error),
@@ -63,7 +60,11 @@ class DownloadRequestAPIView(APIView):
                 "created": created,
                 "download": serializer.data,
             },
-            status=201 if created else 200,
+            status=(
+                201
+                if created
+                else 200
+            ),
         )
 
 
@@ -80,7 +81,6 @@ class PermanentDownloadListAPIView(
     ]
 
     def get_queryset(self):
-
         return (
             PermanentDownload.objects
             .filter(
@@ -106,7 +106,6 @@ class MovieStreamAPIView(APIView):
         request,
         movie_id,
     ):
-
         movie = get_object_or_404(
             Movie,
             id=movie_id,
@@ -120,13 +119,11 @@ class MovieStreamAPIView(APIView):
                 movie=movie,
             )
         ):
-
             return Response(
                 {
                     "detail": (
-                        "An active subscription "
-                        "is required to stream "
-                        "this movie."
+                        "You do not have permission "
+                        "to stream this movie."
                     )
                 },
                 status=403,
@@ -156,7 +153,6 @@ class PermanentDownloadAccessAPIView(
         request,
         movie_id,
     ):
-
         movie = get_object_or_404(
             Movie,
             id=movie_id,
@@ -170,7 +166,6 @@ class PermanentDownloadAccessAPIView(
                 movie=movie,
             )
         ):
-
             return Response(
                 {
                     "detail": (

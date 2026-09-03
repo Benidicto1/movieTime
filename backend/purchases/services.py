@@ -12,16 +12,34 @@ class PurchaseService:
         user,
         movie,
     ):
-        existing_purchase = Purchase.objects.filter(
-            user=user,
-            movie=movie,
-            status=Purchase.Status.PAID,
-        ).first()
+        existing_paid_purchase = (
+            Purchase.objects
+            .filter(
+                user=user,
+                movie=movie,
+                status=Purchase.Status.PAID,
+            )
+            .first()
+        )
 
-        if existing_purchase:
+        if existing_paid_purchase:
             raise ValueError(
                 "User already owns this movie."
             )
+
+        existing_pending_purchase = (
+            Purchase.objects
+            .filter(
+                user=user,
+                movie=movie,
+                status=Purchase.Status.PENDING,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+        if existing_pending_purchase:
+            return existing_pending_purchase
 
         purchase = Purchase.objects.create(
             user=user,
@@ -33,17 +51,18 @@ class PurchaseService:
 
         return purchase
 
-
-    class PurchaseService:
-
-        @staticmethod
-        def user_owns_movie(
-            *,
-            user,
-            movie,
-        ):
-            return Purchase.objects.filter(
+    @staticmethod
+    def user_owns_movie(
+        *,
+        user,
+        movie,
+    ):
+        return (
+            Purchase.objects
+            .filter(
                 user=user,
                 movie=movie,
                 status=Purchase.Status.PAID,
-            ).exists()
+            )
+            .exists()
+        )
