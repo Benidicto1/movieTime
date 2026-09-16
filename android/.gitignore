@@ -1,0 +1,56 @@
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Gradle
+.gradle/
+build/
+*/build/
+
+# Local SDK configuration
+local.properties
+
+# Generated files
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Kotlin
+.kotlin/
+
+# Keystore / signing credentials
+*.jks
+*.keystore
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# Firebase / service account secrets
+google-services.json
+
+# Native build output
+obj/
+
+# Android Studio caches
+.navigation/
+
+# Python, if accidentally created in project
+__pycache__/
+*.py[cod]
+venv/
+.venv/
