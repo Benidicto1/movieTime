@@ -1,4 +1,10 @@
-from decimal import Decimal
+"""
+MovieTime purchase model.
+
+A Purchase represents ownership/payment state for a movie.
+
+A PAID purchase grants permanent ownership.
+"""
 
 from django.conf import settings
 from django.db import models
@@ -57,8 +63,17 @@ class Purchase(models.Model):
     )
 
     def __str__(self):
-        return f"{self.user} - {self.movie} - {self.status}"
+        return (
+            f"{self.user} - "
+            f"{self.movie} - "
+            f"{self.status}"
+        )
 
     @property
     def is_owned(self):
+        """
+        A movie is permanently owned only after payment
+        has been successfully verified.
+        """
+
         return self.status == self.Status.PAID

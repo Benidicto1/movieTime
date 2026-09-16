@@ -12,8 +12,11 @@ from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 
-load_dotenv()
+# ============================================================
+# BASE CONFIGURATION
+# ============================================================
 
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -56,6 +59,7 @@ ALLOWED_HOSTS = [
 # ============================================================
 
 INSTALLED_APPS = [
+    # Django
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -63,9 +67,11 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
+    # Third-party
     "rest_framework",
     "django_filters",
 
+    # MovieTime applications
     "movies.apps.MoviesConfig",
     "payments.apps.PaymentsConfig",
     "purchases.apps.PurchasesConfig",
@@ -77,6 +83,10 @@ INSTALLED_APPS = [
 ]
 
 
+# ============================================================
+# CUSTOM USER MODEL
+# ============================================================
+
 AUTH_USER_MODEL = "accounts.User"
 
 
@@ -85,13 +95,25 @@ AUTH_USER_MODEL = "accounts.User"
 # ============================================================
 
 REST_FRAMEWORK = {
+    # --------------------------------------------------------
+    # Authentication
+    # --------------------------------------------------------
+
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
 
+    # --------------------------------------------------------
+    # Permissions
+    # --------------------------------------------------------
+
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+
+    # --------------------------------------------------------
+    # Filtering / Searching / Ordering
+    # --------------------------------------------------------
 
     "DEFAULT_FILTER_BACKENDS": (
         "django_filters.rest_framework.DjangoFilterBackend",
@@ -99,16 +121,43 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
     ),
 
+    # --------------------------------------------------------
+    # Pagination
+    # --------------------------------------------------------
+
     "DEFAULT_PAGINATION_CLASS": (
         "rest_framework.pagination.PageNumberPagination",
     ),
 
     "PAGE_SIZE": 20,
+
+    # --------------------------------------------------------
+    # Global Rate Limiting
+    # --------------------------------------------------------
+
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ),
+
+    "DEFAULT_THROTTLE_RATES": {
+        # General API protection
+        "anon": "30/minute",
+        "user": "120/minute",
+
+        # Sensitive MovieTime operations
+        "authentication": "5/minute",
+        "payment": "10/minute",
+        "purchase": "10/minute",
+        "download": "20/minute",
+        "stream": "30/minute",
+        "payment_status": "30/minute",
+    },
 }
 
 
 # ============================================================
-# JWT
+# JWT CONFIGURATION
 # ============================================================
 
 SIMPLE_JWT = {
@@ -123,6 +172,67 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": (
         "Bearer",
     ),
+}
+
+
+# ============================================================
+# CACHE / RATE-LIMIT STORAGE
+# ============================================================
+
+CACHE_BACKEND = os.getenv(
+    "DJANGO_CACHE_BACKEND",
+    "local",
+).lower()
+
+
+if CACHE_BACKEND == "redis":
+
+    REDIS_URL = os.getenv(
+        "REDIS_URL"
+    )
+
+    if not REDIS_URL:
+        raise ImproperlyConfigured(
+            "REDIS_URL is required when "
+            "DJANGO_CACHE_BACKEND=redis."
+        )
+
+    CACHES = {
+        "default": {
+            "BACKEND": (
+                "django_redis.cache.RedisCache"
+            ),
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": (
+                    "django_redis.client.DefaultClient"
+                ),
+            },
+        }
+    }
+
+else:
+
+    CACHES = {
+        "default": {
+            "BACKEND": (
+                "django.core.cache.backends.locmem."
+                "LocMemCache"
+            ),
+            "LOCATION": "movietime-rate-limit",
+        }
+    }
+
+
+# ============================================================
+# ABUSE PREVENTION
+# ============================================================
+
+MOVIETIME_ABUSE_PREVENTION = {
+    "ENABLE_DUPLICATE_OPERATION_CHECKS": True,
+    "ENABLE_PAYMENT_REPLAY_PROTECTION": True,
+    "ENABLE_OBJECT_OWNERSHIP_CHECKS": True,
+    "ENABLE_STATE_VALIDATION": True,
 }
 
 
@@ -206,11 +316,17 @@ MOVIETIME_SIGNED_URL_EXPIRATION = int(
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+
     "django.contrib.sessions.middleware.SessionMiddleware",
+
     "django.middleware.common.CommonMiddleware",
+
     "django.middleware.csrf.CsrfViewMiddleware",
+
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+
     "django.contrib.messages.middleware.MessageMiddleware",
+
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -231,21 +347,21 @@ WSGI_APPLICATION = "config.wsgi.application"
 TEMPLATES = [
     {
         "BACKEND": (
-            "django.template.backends.django.DjangoTemplates"
+            "django.template.backends.django."
+            "DjangoTemplates"
         ),
+
         "DIRS": [],
+
         "APP_DIRS": True,
+
         "OPTIONS": {
             "context_processors": [
-                (
-                    "django.template.context_processors.request"
-                ),
-                (
-                    "django.contrib.auth.context_processors.auth"
-                ),
-                (
-                    "django.contrib.messages.context_processors.messages"
-                ),
+                "django.template.context_processors.request",
+
+                "django.contrib.auth.context_processors.auth",
+
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
@@ -261,6 +377,7 @@ DATABASES = {
         "ENGINE": (
             "django.db.backends.sqlite3"
         ),
+
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
@@ -277,18 +394,21 @@ AUTH_PASSWORD_VALIDATORS = [
             "UserAttributeSimilarityValidator"
         ),
     },
+
     {
         "NAME": (
             "django.contrib.auth.password_validation."
             "MinimumLengthValidator"
         ),
     },
+
     {
         "NAME": (
             "django.contrib.auth.password_validation."
             "CommonPasswordValidator"
         ),
     },
+
     {
         "NAME": (
             "django.contrib.auth.password_validation."
@@ -312,10 +432,15 @@ USE_TZ = True
 
 
 # ============================================================
-# STATIC / MEDIA
+# STATIC FILES
 # ============================================================
 
 STATIC_URL = "static/"
+
+
+# ============================================================
+# MEDIA FILES
+# ============================================================
 
 MEDIA_URL = "/media/"
 
@@ -329,7 +454,15 @@ MEDIA_ROOT = BASE_DIR / "media"
 MAILERS = {
     "default": {
         "BACKEND": (
-            "django.core.mail.backends.console.EmailBackend"
+            "django.core.mail.backends.console."
+            "EmailBackend"
         ),
     },
 }
+
+
+# ============================================================
+# DEFAULT PRIMARY KEY
+# ============================================================
+
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

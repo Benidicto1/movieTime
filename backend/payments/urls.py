@@ -1,13 +1,22 @@
 from django.urls import path
 
-from .views import (
+from payments.views import (
     PaymentStatusAPIView,
+    PaymentVerificationAPIView,
     PurchasePaymentAPIView,
     SubscriptionPaymentAPIView,
 )
 
 
+app_name = "payments"
+
+
 urlpatterns = [
+    path(
+        "purchases/",
+        PurchasePaymentAPIView.as_view(),
+        name="purchase-payment",
+    ),
 
     path(
         "subscriptions/",
@@ -16,14 +25,14 @@ urlpatterns = [
     ),
 
     path(
-        "purchases/",
-        PurchasePaymentAPIView.as_view(),
-        name="purchase-payment",
-    ),
-
-    path(
         "<int:payment_id>/status/",
         PaymentStatusAPIView.as_view(),
         name="payment-status",
+    ),
+
+    path(
+        "<int:payment_id>/verify/",
+        PaymentVerificationAPIView.as_view(),
+        name="payment-verification",
     ),
 ]
